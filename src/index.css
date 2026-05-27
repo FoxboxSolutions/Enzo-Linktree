@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Poppins", system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-poppins: "Poppins", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  
+  --animate-border-glow: hoverGlow 3s ease infinite;
+}
+
+@layer base {
+  body {
+    background-color: #000000;
+    color: #f3f4f6;
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+  }
+
+  /* Custom glass scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+}
+
+/* Premium utility styles for glassmorphism and ambient lighting */
+.glass-panel {
+  background: rgba(17, 17, 17, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-panel-interactive {
+  background: rgba(18, 18, 18, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-panel-interactive:hover {
+  background: rgba(24, 24, 24, 0.85);
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.2);
+}
+
+.neon-glow-blue {
+  box-shadow: 0 0 30px -5px rgba(56, 189, 248, 0.2);
+}
+
+.neon-glow-purple {
+  box-shadow: 0 0 30px -5px rgba(168, 85, 247, 0.2);
+}
+
+/* Cyber grid overlay */
+.cyber-grid {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+}
+
+/* Radial light glow for mouse interactions */
+.mouse-radial-glow {
+  background: radial-gradient(400px circle at var(--x) var(--y), rgba(99, 102, 241, 0.11), transparent 80%);
+}
+
+.glow-point {
+  filter: blur(90px);
+}
+
+.markdown-body {
+  font-size: 0.925rem;
+  line-height: 1.6;
+}
+
+.markdown-body p {
+  margin-bottom: 0.75rem;
+}
+
+.markdown-body ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.markdown-body strong {
+  color: #a855f7;
+}
+
+/* Typist key frames for caret */
+@keyframes blink {
+  50% { opacity: 0; }
+}
+.typing-caret::after {
+  content: '|';
+  animation: blink 1s infinite;
+  color: #38bdf8;
+}
