@@ -26,12 +26,16 @@ import {
   Globe
 } from "lucide-react";
 
-import { CREATOR_PROFILE, SOCIAL_LINKS, CREATOR_LINKS, RECOMMENDED_AI_TOOLS } from "./data";
+import { CREATOR_PROFILE, SOCIAL_LINKS, CREATOR_LINKS, RECOMMENDED_AI_TOOLS, TRANSLATIONS } from "./data";
 import { ChatMessage } from "./types";
 import AudioPlayer from "./components/AudioPlayer";
 import GlowEffect from "./components/GlowEffect";
 
 export default function App() {
+  // Translate / language context state
+  const [lang, setLang] = useState<"EN" | "FR" | "AR">("EN");
+  const t = TRANSLATIONS[lang];
+
   // Navigation tabs - simplified to just links list vs AI twin assistant
   const [activeTab, setActiveTab] = useState<"links" | "chat">("links");
 
@@ -40,7 +44,7 @@ export default function App() {
     {
       id: "welcome",
       sender: "ai",
-      text: "Hey! I'm Enzo Diflow's AI Twin. Ask me anything about automation workflows, custom AI consulting, or my favorite tech setups!",
+      text: TRANSLATIONS.EN.ui.chatWelcome,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -63,6 +67,20 @@ export default function App() {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory, isChatTyping]);
 
+  // Update initial welcome chat message when language switches
+  useEffect(() => {
+    setChatHistory(prev => {
+      const remaining = prev.filter(m => m.id !== "welcome");
+      const welcomeMsg: ChatMessage = {
+        id: "welcome",
+        sender: "ai",
+        text: t.ui.chatWelcome,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      return [welcomeMsg, ...remaining];
+    });
+  }, [lang, t]);
+
   const showToast = (message: string) => {
     setToastMessage(message);
     setTimeout(() => {
@@ -73,7 +91,7 @@ export default function App() {
   const handleCopyEmail = () => {
     navigator.clipboard.writeText(CREATOR_PROFILE.email);
     setIsCopied(true);
-    showToast("📋 Copying Email to Clipboard!");
+    showToast(t.ui.copiedToast);
     setTimeout(() => {
       setIsCopied(false);
     }, 2000);
@@ -83,27 +101,27 @@ export default function App() {
     const currentUrl = window.location.href;
     if (navigator.share) {
       navigator.share({
-        title: "Enzo Diflow • Premium Link Portal",
-        text: "Check out Enzo Diflow's custom links and AI twin!",
+        title: `Enzo Diflow • ${t.ui.recommendedStack}`,
+        text: `Check out Enzo Diflow's custom links and AI twin!`,
         url: currentUrl,
       }).catch(() => {
         navigator.clipboard.writeText(currentUrl);
-        showToast("🔗 Link copied to clipboard!");
+        showToast(t.ui.linkCopiedToast);
       });
     } else {
       navigator.clipboard.writeText(currentUrl);
-      showToast("🔗 Link copied to clipboard!");
+      showToast(t.ui.linkCopiedToast);
     }
   };
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newsletterEmail || !newsletterEmail.includes("@")) {
-      showToast("⚠️ Please enter a valid email address");
+      showToast(t.ui.emailError);
       return;
     }
     setNewsletterSubscribed(true);
-    showToast("🎉 Awesome! You're added to Enzo's list.");
+    showToast(t.ui.newsSuccessToast);
   };
 
   const handleSendMessage = async (e?: React.FormEvent) => {
@@ -211,16 +229,34 @@ export default function App() {
     }
   };
 
-  const filteredTools = RECOMMENDED_AI_TOOLS.filter(tool => {
+  // Translate links & tools content
+  const currentTools = RECOMMENDED_AI_TOOLS.map(tool => {
+    const translation = t.tools.find(item => item.id === tool.id);
+    return {
+      ...tool,
+      description: translation?.description || tool.description
+    };
+  });
+
+  const currentLinks = CREATOR_LINKS.map(link => {
+    const translation = t.links.find(item => item.id === link.id);
+    return {
+      ...link,
+      title: translation?.title || link.title,
+      description: translation?.description || link.description,
+      ctaText: translation?.ctaText || link.ctaText,
+      badge: translation?.badge || link.badge
+    };
+  });
+
+  const filteredTools = currentTools.filter(tool => {
     const matchesCategory = activeCategory === "all" || tool.category === activeCategory;
     const matchesSearch = tool.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           tool.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          tool.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()));
+                          tool.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCategory && matchesSearch;
-  });
-
-  return (
-    <div className="min-h-screen w-full bg-[#0a0a0c] text-neutral-100 font-sans relative overflow-x-hidden selection:bg-indigo-500/30">
+  });  return (
+    <div className="min-h-screen w-full bg-[#0a0a0c] text-neutral-100 font-sans relative overflow-x-hidden selection:bg-indigo-500/30" dir={lang === "AR" ? "rtl" : "ltr"}>
       
       {/* Soft aesthetic background orbs */}
       <div className="absolute inset-x-0 top-0 h-[500px] bg-gradient-to-b from-indigo-950/20 via-transparent to-transparent pointer-events-none z-0" />
@@ -237,6 +273,28 @@ export default function App() {
             <span>{toastMessage}</span>
           </div>
         )}
+
+        {/* Elegant Language Switcher Pill */}
+        <div className={`w-full flex mb-4 ${lang === "AR" ? "justify-start" : "justify-end"}`}>
+          <div className="inline-flex p-1 bg-neutral-900/90 border border-zinc-800/60 rounded-full shadow-lg backdrop-blur-md">
+            {(["EN", "FR", "AR"] as const).map((l) => (
+              <button
+                key={l}
+                onClick={() => {
+                  setLang(l);
+                  showToast(l === "FR" ? "🇫🇷 Langue changée en Français" : l === "AR" ? "🇩🇿 تم تغيير اللغة إلى العربية" : "🇺🇸 Language switched to English");
+                }}
+                className={`px-3.5 py-1 rounded-full text-[10px] font-extrabold tracking-wider transition-all duration-300 ${
+                  lang === l
+                    ? "bg-indigo-600 text-white shadow"
+                    : "text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* PROFILE CARD CONTAINER */}
         <header className="text-center w-full mb-8 bg-neutral-900/30 rounded-3xl border border-zinc-800/60 overflow-hidden shadow-2xl backdrop-blur-md">
@@ -296,7 +354,7 @@ export default function App() {
                 href={`https://${(CREATOR_PROFILE as any).website}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                title="Visit Website"
+                title={t.ui.visitWebsite}
                 className="inline-flex items-center gap-1.5 px-3 py-1 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800 rounded-full text-xs text-indigo-400 hover:text-indigo-300 font-medium mb-4 transition-all duration-200"
               >
                 <Globe className="w-3.5 h-3.5 text-zinc-400" />
@@ -306,7 +364,7 @@ export default function App() {
             )}
 
             <p className="text-zinc-300 text-sm leading-relaxed max-w-sm mx-auto mb-6">
-              AI Engineer & Tech Creator. Let's design modular automation pipelines and scale digital presence together.
+              {t.profile.bio}
             </p>
 
             {/* Social icons row - Thumb-friendly, clean layout */}
@@ -333,7 +391,7 @@ export default function App() {
                 className="flex items-center gap-2 px-4 py-2 bg-neutral-950 border border-zinc-800/80 hover:border-zinc-750 transition-colors text-xs font-medium rounded-full text-zinc-300 hover:text-white"
               >
                 <Mail className="w-3.5 h-3.5 text-zinc-400" />
-                <span>Copy Email</span>
+                <span>{t.ui.copyEmail}</span>
               </button>
               <button
                 onClick={handleShareProfile}
@@ -341,7 +399,7 @@ export default function App() {
                 className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 transition-all text-xs font-semibold rounded-full text-white shadow-lg shadow-indigo-500/10"
               >
                 <Share2 className="w-3.5 h-3.5" />
-                <span>Share Portal</span>
+                <span>{t.ui.sharePortal}</span>
               </button>
             </div>
           </div>
@@ -358,7 +416,7 @@ export default function App() {
             }`}
           >
             <Layers className="w-4 h-4" />
-            <span>My Links & Tools</span>
+            <span>{t.ui.myLinksAndTools}</span>
           </button>
           <button
             onClick={() => setActiveTab("chat")}
@@ -368,7 +426,7 @@ export default function App() {
             }`}
           >
             <MessageSquare className="w-4 h-4" />
-            <span>Ask Enzo AI</span>
+            <span>{t.ui.askEnzo}</span>
             <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block animate-ping" />
           </button>
         </div>
@@ -376,11 +434,11 @@ export default function App() {
         {/* ACTIVE MODULE VIEW */}
         <section className="w-full space-y-8">
           {activeTab === "links" ? (
-            <div className="space-y-8 transition-opacity duration-300">
+            <div className="space-y-8">
               
               {/* CREATOR RESOURCES & LINKS SECTION */}
               <div className="space-y-3">
-                {CREATOR_LINKS.map((link) => {
+                {currentLinks.map((link) => {
                   const isAnchor = link.url.startsWith("#");
                   return (
                     <div
@@ -432,9 +490,9 @@ export default function App() {
                 <div>
                   <h2 className="text-base font-bold text-white flex items-center gap-1.5">
                     <Sparkles className="w-4 h-4 text-amber-400" />
-                    Recommended AI Stack
+                    {t.ui.recommendedStack}
                   </h2>
-                  <p className="text-xs text-zinc-500 mt-0.5">Tested daily solutions vetted directly for efficiency </p>
+                  <p className="text-xs text-zinc-500 mt-0.5">{t.ui.recommendedStackSub}</p>
                 </div>
 
                 {/* Filter and Search controls */}
@@ -443,7 +501,7 @@ export default function App() {
                     <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      placeholder="Search workflow tools, setups..."
+                      placeholder={t.ui.searchPlaceholder}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full pl-10 pr-4 py-2 bg-neutral-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500 transition-colors"
@@ -461,10 +519,10 @@ export default function App() {
                   {/* Horizontal pill list of categories */}
                   <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar select-none">
                     {[
-                      { key: "all", label: "All" },
-                      { key: "automation", label: "Automation" },
-                      { key: "productivity", label: "Productivity" },
-                      { key: "content-creation", label: "Content" }
+                      { key: "all", label: t.ui.categories.all },
+                      { key: "automation", label: t.ui.categories.automation },
+                      { key: "productivity", label: t.ui.categories.productivity },
+                      { key: "content-creation", label: t.ui.categories.content }
                     ].map(category => (
                       <button
                         key={category.key}
@@ -503,7 +561,7 @@ export default function App() {
                           {tool.name}
                           {tool.isCustomFavorite && (
                             <span className="text-[8px] px-1.5 py-0.5 bg-indigo-500/10 text-indigo-300 rounded font-extrabold uppercase">
-                              Enzo's Pick
+                              {t.ui.enzosPick}
                             </span>
                           )}
                         </h4>
@@ -535,23 +593,23 @@ export default function App() {
               <div className="p-6 rounded-2xl bg-neutral-900/40 border border-zinc-800/80">
                 <h3 className="text-sm font-bold text-white flex items-center gap-1.5 mb-1">
                   <Mail className="w-4 h-4 text-indigo-400" />
-                  Grab Free Automation Blueprints
+                  {t.ui.newsletterTitle}
                 </h3>
                 <p className="text-xs text-zinc-400 leading-relaxed mb-4">
-                  Join 24K+ learning modern workflows. Receive step-by-step guides and custom automation templates every week.
+                  {t.ui.newsletterDesc}
                 </p>
 
                 {newsletterSubscribed ? (
                   <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-center text-xs text-emerald-300 animate-fade-in flex items-center justify-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>Welcome! Enzo's first setup is headed to your email.</span>
+                    <span>{t.ui.newsletterSuccess}</span>
                   </div>
                 ) : (
                   <form onSubmit={handleNewsletterSubmit} className="flex gap-2">
                     <input
                       type="email"
                       required
-                      placeholder="Enter your email"
+                      placeholder={t.ui.newsletterPlaceholder}
                       value={newsletterEmail}
                       onChange={(e) => setNewsletterEmail(e.target.value)}
                       className="flex-1 bg-neutral-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 transition-colors"
@@ -560,7 +618,7 @@ export default function App() {
                       type="submit"
                       className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-indigo-500/20 active:scale-95 transition-all text-center"
                     >
-                      Subscribe
+                      {t.ui.newsletterSubscribe}
                     </button>
                   </form>
                 )}
@@ -568,7 +626,7 @@ export default function App() {
 
               {/* LOFI MUSIC AUDIO PLAYER - Sleek and integrated naturally at bottom list */}
               <div className="p-4 bg-neutral-900/40 rounded-2xl border border-zinc-800/80 text-left">
-                <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold font-mono mb-2.5">Ambient Productivity Stream</div>
+                <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold font-mono mb-2.5">{t.ui.ambientStream}</div>
                 <AudioPlayer />
               </div>
 
@@ -583,8 +641,8 @@ export default function App() {
                   <Sparkles className="w-5 h-5 animate-pulse" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">Enzo's Twin AI Assistant</h3>
-                  <p className="text-[11px] text-zinc-500 leading-relaxed">Speak direct to an interactive clone familiar with automation stacks and courses.</p>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">{t.ui.chatGreetingTitle}</h3>
+                  <p className="text-[11px] text-zinc-500 leading-relaxed">{t.ui.chatGreetingSubtitle}</p>
                 </div>
               </div>
 
@@ -599,7 +657,7 @@ export default function App() {
                       className={`flex gap-3 max-w-[85%] ${msg.sender === "user" ? "ml-auto flex-row-reverse" : "mr-auto"}`}
                     >
                       <div className={`w-7 h-7 rounded-lg font-mono text-[9px] flex items-center justify-center shrink-0 border uppercase font-bold ${msg.sender === "user" ? "bg-zinc-800 text-cyan-400 border-zinc-700" : "bg-indigo-950/40 text-indigo-400 border-indigo-500/20"}`}>
-                        {msg.sender === "user" ? "Me" : "AI"}
+                        {msg.sender === "user" ? (lang === "FR" ? "Moi" : lang === "AR" ? "أنا" : "Me") : "AI"}
                       </div>
                       
                       <div className={`p-3 rounded-2xl text-xs leading-relaxed ${msg.sender === "user" ? "bg-zinc-900 text-zinc-100 rounded-tr-none border border-zinc-800" : "bg-neutral-900 text-zinc-300 rounded-tl-none border border-zinc-800/40"}`}>
@@ -628,11 +686,7 @@ export default function App() {
 
                 {/* Quick questions suggestion chips */}
                 <div className="p-2 bg-neutral-950 border-t border-zinc-900 flex gap-2 overflow-x-auto select-none no-scrollbar">
-                  {[
-                    "🤖 Automation Course?",
-                    "📅 Book consultation",
-                    "🚀 Favorite AI tools?"
-                  ].map((chip) => (
+                  {t.ui.quickQuestions.map((chip) => (
                     <button
                       key={chip}
                       onClick={() => handleQuickQuestion(chip)}
@@ -649,7 +703,7 @@ export default function App() {
               <form onSubmit={handleSendMessage} className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Ask a question..."
+                  placeholder={t.ui.chatPlaceholder}
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   className="flex-1 bg-neutral-950 border border-zinc-800 rounded-2xl px-4 py-3 text-xs text-white focus:outline-none focus:border-indigo-500 transition-colors"
@@ -660,7 +714,7 @@ export default function App() {
                   className="px-5 bg-indigo-600 hover:bg-indigo-500 hover:scale-[1.01] active:scale-95 text-white rounded-2xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-lg shadow-indigo-500/10 shrink-0"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>Send</span>
+                  <span>{t.ui.chatSend}</span>
                 </button>
               </form>
 
